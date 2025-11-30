@@ -1,0 +1,45 @@
+/* PROJECT: Superstore Sales Analysis
+GOAL: Extract key business metrics using Advanced SQL (CTEs, Window Functions)
+*/
+
+-- 1. IDENTIFY TOP 3 PRODUCTS PER CATEGORY (Window Function)
+-- This helps inventory managers know which items to prioritize stocking.
+WITH RankedProducts AS (
+    SELECT 
+        Category,
+        "Product Name",
+        SUM(Sales) as Total_Sales,
+        RANK() OVER(PARTITION BY Category ORDER BY SUM(Sales) DESC) as Rank
+    FROM Superstore_Transactions
+    GROUP BY Category, "Product Name"
+)
+SELECT * FROM RankedProducts
+WHERE Rank <= 3;
+
+
+-- 2. CUSTOMER SEGMENTATION (RFM Analysis preparation)
+-- Categorize customers based on their total spend.
+SELECT 
+    "Customer ID",
+    SUM(Sales) as Total_Lifetime_Value,
+    CASE 
+        WHEN SUM(Sales) > 5000 THEN 'VIP'
+        WHEN SUM(Sales) BETWEEN 1000 AND 5000 THEN 'Loyal'
+        ELSE 'Standard'
+    END as Customer_Segment
+FROM Superstore_Transactions
+GROUP BY "Customer ID";
+
+
+-- 3. MOVING AVERAGE OF SALES (Time Series in SQL)
+-- Calculate a 3-month rolling average for trend analysis.
+SELECT 
+    DATE_TRUNC('month', "Order Date") as Month,
+    SUM(Sales) as Monthly_Sales,
+    AVG(SUM(Sales)) OVER(
+        ORDER BY DATE_TRUNC('month', "Order Date")
+        ROWS BETWEEN 2 PRECEDING AND CURRENT ROW
+    ) as Moving_Avg_3_Month
+FROM Superstore_Transactions
+GROUP BY 1
+ORDER BY 1;
